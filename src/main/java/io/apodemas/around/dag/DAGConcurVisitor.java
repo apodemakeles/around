@@ -7,6 +7,6 @@ import java.util.List;
  * @date: 2023/5/20
  * @description:
  */
-public interface DAGVisitor<V> {
+public interface DAGConcurVisitor<V> {
     void visit(List<V> sources, V current);
 }

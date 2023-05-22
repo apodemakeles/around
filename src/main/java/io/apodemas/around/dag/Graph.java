@@ -1,8 +1,5 @@
 package io.apodemas.around.dag;
 
-import com.sun.javafx.collections.UnmodifiableListSet;
-
-import javax.print.attribute.UnmodifiableSetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,20 +18,16 @@ public class Graph<V> {
         vertices.computeIfAbsent(vertex2, v -> new HashSet<>());
     }
 
-    public List<V> vertices() {
-        return vertices.keySet().stream().collect(Collectors.toList());
-    }
-
-    public List<V> destinations(V vertex) {
-        final Set<V> set = vertices.get(vertex);
-        if (set == null) {
-            throw new IllegalArgumentException("the vertex is not in the graph");
-        }
-        return new ArrayList<>(set);
-    }
-
     public int size() {
         return vertices.size();
+    }
+
+    public Map<V, Set<V>> vertexMap() {
+        Map<V, Set<V>> unmodifiableMap = new HashMap<>();
+        for (Map.Entry<V, Set<V>> entry : vertices.entrySet()) {
+            unmodifiableMap.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(unmodifiableMap);
     }
 
     public DAGEngine<V> toDAG() {
