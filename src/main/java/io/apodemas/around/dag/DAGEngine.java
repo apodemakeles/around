@@ -1,8 +1,8 @@
 package io.apodemas.around.dag;
 
-import com.sun.xml.internal.ws.util.CompletedFuture;
-
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 
 /**
@@ -35,17 +35,21 @@ public class DAGEngine<V> {
     }
 
     public void traverse(DAGVisitor<V> visitor) {
-        final Traverser<V> traverser = getTraverser();
-        traverser.traverse(visitor);
-    }
-
-    private Traverser<V> getTraverser() {
         final Traverser<V> traverser = new Traverser<>();
         traverser.vertices = this.vertices;
         traverser.inDegree = copyInDegree();
         traverser.starts = this.starts;
 
-        return traverser;
+        traverser.traverse(visitor);
+    }
+
+    public void concurrentTraverse(DAGVisitor<V> visitor, Executor executor) {
+        final ConcurrentTraverser<V> traverser = new ConcurrentTraverser<>();
+        traverser.vertices = this.vertices;
+        traverser.inDegree = copyInDegree();
+        traverser.starts = this.starts;
+
+        traverser.traverse(visitor, executor);
     }
 
     private Map<V, Integer> copyInDegree() {
@@ -93,12 +97,57 @@ public class DAGEngine<V> {
         private Set<V> starts;
         private Map<V, List<V>> sources = new HashMap<>();
 
-        private void traverse(DAGConcurVisitor<V> visitor, Executor executor) {
-
+        private void traverse(DAGVisitor<V> visitor, Executor executor) {
+            List<CompletableFuture<Void>> subFutures = new ArrayList<>();
+            for (V vertex : starts) {
+                subFutures.add(visit(vertex, visitor, executor));
+            }
+            try {
+                CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0])).join();
+            } catch (CompletionException e) {
+                throw new DAGTraverseException("encountering an exception during traversal", e.getCause());
+            } catch (Exception e) {
+                throw new DAGTraverseException("encountering an exception during traversal", e);
+            }
         }
 
-        private CompletedFuture<Void> visit(V current, DAGVisitor<V> visitor) {
-            return null;
+        private CompletableFuture<Void> visit(V current, DAGVisitor<V> visitor, Executor executor) {
+            final List<V> sources = getSources(current);
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> visitor.visit(sources, current), executor);
+            future = future.thenRun(() -> {
+                List<CompletableFuture<Void>> subFutures = new ArrayList<>();
+                for (V destination : vertices.get(current)) {
+                    addSource(destination, current);
+                    final int degree = decreaseAndGetDegree(destination);
+                    if (degree == 0) {
+                        final CompletableFuture<Void> subFuture = visit(destination, visitor, executor);
+                        subFutures.add(subFuture);
+                    }
+                }
+                if (subFutures.size() == 0) {
+                    return;
+                }
+                CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0])).join();
+            });
+
+            return future;
+        }
+
+        private synchronized List<V> getSources(V current) {
+            return sources.getOrDefault(current, Collections.EMPTY_LIST);
+        }
+
+        private synchronized int decreaseAndGetDegree(V current) {
+            return inDegree.compute(current, (vertex, degree) -> degree - 1);
+        }
+
+        private synchronized void addSource(V destination, V source) {
+            List<V> sources = this.sources.get(destination);
+            if (sources == null) {
+                sources = new ArrayList<>();
+            }
+            sources.add(source);
+            this.sources.put(destination, sources);
         }
     }
 }
