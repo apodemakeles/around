@@ -53,18 +53,18 @@ public class DAGEngine<V> {
     }
 
     private Map<V, Integer> copyInDegree() {
-        final Map<V, Integer> inDegree = new HashMap<>();
+        final Map<V, Integer> copy = new HashMap<>();
         for (Map.Entry<V, Integer> entry : this.inDegree.entrySet()) {
-            inDegree.put(entry.getKey(), entry.getValue());
+            copy.put(entry.getKey(), entry.getValue());
         }
-        return inDegree;
+        return copy;
     }
 
     private static class Traverser<V> {
         private Map<V, Set<V>> vertices;
         private Map<V, Integer> inDegree;
         private Set<V> starts;
-        private Map<V, List<V>> sources = new HashMap<>();
+        private Map<V, List<V>> sourceMap = new HashMap<>();
 
         private void traverse(DAGVisitor<V> visitor) {
             for (V vertex : starts) {
@@ -73,11 +73,11 @@ public class DAGEngine<V> {
         }
 
         private void visit(V current, DAGVisitor<V> visitor) {
-            List<V> sources = this.sources.getOrDefault(current, Collections.EMPTY_LIST);
+            List<V> sources = this.sourceMap.getOrDefault(current, Collections.emptyList());
             visitor.visit(sources, current);
             for (V destination : vertices.get(current)) {
                 final int d = inDegree.compute(destination, (vertex, degree) -> degree - 1);
-                this.sources.compute(destination, (k, v) -> {
+                this.sourceMap.compute(destination, (k, v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
                     }
@@ -95,7 +95,7 @@ public class DAGEngine<V> {
         private Map<V, Set<V>> vertices;
         private Map<V, Integer> inDegree;
         private Set<V> starts;
-        private Map<V, List<V>> sources = new HashMap<>();
+        private Map<V, List<V>> sourceMap = new HashMap<>();
 
         private void traverse(DAGVisitor<V> visitor, Executor executor) {
             List<CompletableFuture<Void>> subFutures = new ArrayList<>();
@@ -124,7 +124,7 @@ public class DAGEngine<V> {
                         subFutures.add(subFuture);
                     }
                 }
-                if (subFutures.size() == 0) {
+                if (subFutures.isEmpty()) {
                     return;
                 }
                 CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0])).join();
@@ -134,7 +134,7 @@ public class DAGEngine<V> {
         }
 
         private synchronized List<V> getSources(V current) {
-            return sources.getOrDefault(current, Collections.EMPTY_LIST);
+            return sourceMap.getOrDefault(current, Collections.emptyList());
         }
 
         private synchronized int decreaseAndGetDegree(V current) {
@@ -142,12 +142,12 @@ public class DAGEngine<V> {
         }
 
         private synchronized void addSource(V destination, V source) {
-            List<V> sources = this.sources.get(destination);
+            List<V> sources = this.sourceMap.get(destination);
             if (sources == null) {
                 sources = new ArrayList<>();
             }
             sources.add(source);
-            this.sources.put(destination, sources);
+            this.sourceMap.put(destination, sources);
         }
     }
 }
