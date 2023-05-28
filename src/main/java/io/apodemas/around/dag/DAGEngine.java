@@ -114,7 +114,7 @@ public class DAGEngine<V> {
         private CompletableFuture<Void> visit(V current, DAGVisitor<V> visitor, Executor executor) {
             final List<V> sources = getSources(current);
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> visitor.visit(sources, current), executor);
-            future = future.thenRun(() -> {
+            return future.thenCompose((Void) -> {
                 List<CompletableFuture<Void>> subFutures = new ArrayList<>();
                 for (V destination : vertices.get(current)) {
                     addSource(destination, current);
@@ -124,13 +124,8 @@ public class DAGEngine<V> {
                         subFutures.add(subFuture);
                     }
                 }
-                if (subFutures.isEmpty()) {
-                    return;
-                }
-                CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0])).join();
+                return CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0]));
             });
-
-            return future;
         }
 
         private synchronized List<V> getSources(V current) {

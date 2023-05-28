@@ -28,7 +28,7 @@ public class DAGConcurrentEngineTest {
         assembler.add(2, 3);
         final DAGEngine<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, executor);
+        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
@@ -41,12 +41,25 @@ public class DAGConcurrentEngineTest {
         assembler.add(3, 4);
         final DAGEngine<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, executor);
+        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     @Test
     public void traverse_case_3() {
+        final MockAssembler assembler = new MockAssembler();
+        assembler.add(1, 2);
+        assembler.add(1, 3);
+        assembler.add(2, 4);
+        assembler.add(3, 4);
+        final DAGEngine<Integer> dag = assembler.toDAG();
+        final MockVisitor visitor = assembler.toVisitor();
+        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(1));
+        assertCountAndSequence(assembler.getVertices(), visitor);
+    }
+
+    @Test
+    public void traverse_case_4() {
         final MockAssembler assembler = new MockAssembler();
         assembler.add(1, 2);
         assembler.add(1, 3);
@@ -60,7 +73,26 @@ public class DAGConcurrentEngineTest {
         assembler.add(4, 8);
         final DAGEngine<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, executor);
+        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
+        assertCountAndSequence(assembler.getVertices(), visitor);
+    }
+
+    @Test
+    public void traverse_case_5() {
+        final MockAssembler assembler = new MockAssembler();
+        assembler.add(1, 2);
+        assembler.add(1, 3);
+        assembler.add(1, 4);
+        assembler.add(2, 5);
+        assembler.add(2, 6);
+        assembler.add(3, 6);
+        assembler.add(5, 7);
+        assembler.add(6, 8);
+        assembler.add(7, 8);
+        assembler.add(4, 8);
+        final DAGEngine<Integer> dag = assembler.toDAG();
+        final MockVisitor visitor = assembler.toVisitor();
+        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(1));
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
@@ -123,6 +155,7 @@ public class DAGConcurrentEngineTest {
 
         @Override
         public void visit(List<Integer> sources, Integer current) {
+            System.out.println("visit " + current);
             pos.put(current, seq.incrementAndGet());
             final Set<Integer> expectedSources = new HashSet<>(sources);
             final HashSet<Integer> actualSources = new HashSet<>(this.sources.getOrDefault(current, Collections.EMPTY_LIST));
