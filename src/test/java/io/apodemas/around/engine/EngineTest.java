@@ -63,10 +63,27 @@ public class EngineTest {
         graph.addEdge(v3, v4);
         graph.addEdge(v4, v5);
         final DAGEngine<TaskExecutor<MockResource>> dag = graph.toDAG();
-        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(100));
+        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(3));
 
         final List<Org> orgList = v5.getData();
         Assert.assertEquals(5, orgList.size());
+        final Map<Long, Org> orgMap = orgList.stream().collect(Collectors.toMap(Org::getId, org -> org));
+        final Org enterprise = orgMap.get(1L);
+        Assert.assertEquals("Tom", enterprise.getCreatorName());
+        Assert.assertEquals("Jerry", enterprise.getOperatorName());
+        final Org corp = orgMap.get(2L);
+        Assert.assertEquals("Jerry", corp.getCreatorName());
+        Assert.assertEquals("Lily", corp.getOperatorName());
+        final Org shop = orgMap.get(3L);
+        Assert.assertNull(shop.getCreatorName());
+        Assert.assertEquals("Kitty", shop.getOperatorName());
+        final Org workshop = orgMap.get(4L);
+        Assert.assertEquals("Kitty", workshop.getCreatorName());
+        Assert.assertNull(workshop.getOperatorName());
+        final Org depart = orgMap.get(5L);
+        Assert.assertEquals("Lily", depart.getCreatorName());
+        Assert.assertNull(depart.getOperatorName());
+
     }
 
     public List<Org> getOrgList() {

@@ -24,6 +24,7 @@ public class ListAssembler<S, D, K> implements BiConsumer<List<S>, List<D>> {
         Item<S, D, K> item = new Item<>();
         item.dstKeyExtractor = dstKeyExtractor;
         item.assembler = assembler;
+        items.add(item);
     }
 
     @Override
