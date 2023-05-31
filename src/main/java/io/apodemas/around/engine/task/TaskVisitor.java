@@ -9,9 +9,13 @@ import java.util.List;
  * @date: 2023/5/28
  * @description:
  */
-public class AsyncTaskVisitor<R extends ResourceType> implements DAGVisitor<TaskExecutor<R>> {
+public class TaskVisitor<R extends ResourceType> implements DAGVisitor<TaskExecutor<R>> {
 
-    private SyncContext<R> ctx = new SyncContext<>();
+    private ExecutionContext<R> ctx;
+
+    public TaskVisitor(ExecutionContext<R> ctx) {
+        this.ctx = ctx;
+    }
 
     @Override
     public void visit(List<TaskExecutor<R>> sources, TaskExecutor<R> current) {

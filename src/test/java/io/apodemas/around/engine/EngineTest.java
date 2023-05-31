@@ -8,8 +8,8 @@ import io.apodemas.around.engine.executor.Assembler;
 import io.apodemas.around.engine.executor.Extractor;
 import io.apodemas.around.engine.executor.Getter;
 import io.apodemas.around.engine.executor.Provider;
-import io.apodemas.around.engine.task.AsyncTaskVisitor;
-import io.apodemas.around.engine.task.CommonContext;
+import io.apodemas.around.engine.task.SyncContext;
+import io.apodemas.around.engine.task.TaskVisitor;
 import io.apodemas.around.engine.task.ResourceType;
 import io.apodemas.around.engine.task.TaskExecutor;
 import io.apodemas.around.mock.Org;
@@ -56,7 +56,7 @@ public class EngineTest {
         final Getter<MockResource, List<Org>> v5 = new Getter<>(orgRes);
 
         // build and execute dag engine
-        final AsyncTaskVisitor<MockResource> visitor = new AsyncTaskVisitor<>();
+        final TaskVisitor<MockResource> visitor = new TaskVisitor<>(new SyncContext<>());
         final Graph<TaskExecutor<MockResource>> graph = new Graph<>();
         graph.addEdge(v1, v2);
         graph.addEdge(v2, v3);
