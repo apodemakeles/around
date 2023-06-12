@@ -65,7 +65,7 @@ public class GraphTest {
         graph.addEdge(2, 3);
         graph.addEdge(3, 4);
         graph.addEdge(4, 5);
-        final DAGEngine dag = graph.toDAG();
+        final DAG dag = graph.toDAG();
         Assert.assertEquals(0, dag.getInDegree(1));
         Assert.assertEquals(1, dag.getInDegree(2));
         Assert.assertEquals(1, dag.getInDegree(3));
@@ -80,7 +80,7 @@ public class GraphTest {
         graph.addEdge(2, 5);
         graph.addEdge(3, 5);
         graph.addEdge(4, 5);
-        final DAGEngine dag = graph.toDAG();
+        final DAG dag = graph.toDAG();
         Assert.assertEquals(0, dag.getInDegree(1));
         Assert.assertEquals(0, dag.getInDegree(2));
         Assert.assertEquals(0, dag.getInDegree(3));

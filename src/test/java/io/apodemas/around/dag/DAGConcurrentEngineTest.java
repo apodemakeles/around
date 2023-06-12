@@ -4,8 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -15,52 +14,49 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DAGConcurrentEngineTest {
 
-
-    private ExecutorService executor = Executors.newFixedThreadPool(10);
-
     /**
      * 1 -> 2 -> 3
      */
     @Test
     public void traverse_case_1() {
-        final MockAssembler assembler = new MockAssembler();
+        final MockAssembler assembler = new MockAssembler(Executors.newCachedThreadPool());
         assembler.add(1, 2);
         assembler.add(2, 3);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
+        dag.concurrentTraverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     @Test
     public void traverse_case_2() {
-        final MockAssembler assembler = new MockAssembler();
+        final MockAssembler assembler = new MockAssembler(Executors.newCachedThreadPool());
         assembler.add(1, 2);
         assembler.add(1, 3);
         assembler.add(2, 4);
         assembler.add(3, 4);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
+        dag.concurrentTraverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     @Test
     public void traverse_case_3() {
-        final MockAssembler assembler = new MockAssembler();
+        final MockAssembler assembler = new MockAssembler(Executors.newFixedThreadPool(1));
         assembler.add(1, 2);
         assembler.add(1, 3);
         assembler.add(2, 4);
         assembler.add(3, 4);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(1));
+        dag.concurrentTraverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     @Test
     public void traverse_case_4() {
-        final MockAssembler assembler = new MockAssembler();
+        final MockAssembler assembler = new MockAssembler(Executors.newCachedThreadPool());
         assembler.add(1, 2);
         assembler.add(1, 3);
         assembler.add(1, 4);
@@ -71,15 +67,15 @@ public class DAGConcurrentEngineTest {
         assembler.add(6, 8);
         assembler.add(7, 8);
         assembler.add(4, 8);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, Executors.newCachedThreadPool());
+        dag.concurrentTraverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     @Test
     public void traverse_case_5() {
-        final MockAssembler assembler = new MockAssembler();
+        final MockAssembler assembler = new MockAssembler(Executors.newFixedThreadPool(1));
         assembler.add(1, 2);
         assembler.add(1, 3);
         assembler.add(1, 4);
@@ -90,15 +86,15 @@ public class DAGConcurrentEngineTest {
         assembler.add(6, 8);
         assembler.add(7, 8);
         assembler.add(4, 8);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
-        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(1));
+        dag.concurrentTraverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
     }
 
     private void assertCountAndSequence(Map<Integer, Set<Integer>> vertices, MockVisitor visitor) {
         Assert.assertEquals(vertices.size(), visitor.count());
-        final HashMap<Integer, Integer> pos = visitor.getPos();
+        final ConcurrentHashMap<Integer, Integer> pos = visitor.getPos();
         for (Map.Entry<Integer, Set<Integer>> entry : vertices.entrySet()) {
             final Integer source = entry.getKey();
             final Integer srcIndex = pos.get(source);
@@ -117,6 +113,11 @@ public class DAGConcurrentEngineTest {
     public static class MockAssembler {
         private Graph<Integer> graph = new Graph<>();
         private Map<Integer, List<Integer>> sources = new HashMap<>();
+        private Executor executor;
+
+        public MockAssembler(Executor executor) {
+            this.executor = executor;
+        }
 
         public void add(int source, int destination) {
             graph.addEdge(source, destination);
@@ -130,12 +131,12 @@ public class DAGConcurrentEngineTest {
             this.sources.put(destination, sources);
         }
 
-        public DAGEngine<Integer> toDAG() {
+        public DAG<Integer> toDAG() {
             return graph.toDAG();
         }
 
         public MockVisitor toVisitor() {
-            return new MockVisitor(sources);
+            return new MockVisitor(sources, executor);
         }
 
         public Map<Integer, Set<Integer>> getVertices() {
@@ -143,30 +144,34 @@ public class DAGConcurrentEngineTest {
         }
     }
 
-    public static class MockVisitor implements DAGVisitor<Integer> {
+    public static class MockVisitor implements AsyncDAGVisitor<Integer> {
 
         private AtomicInteger seq = new AtomicInteger(0);
-        private HashMap<Integer, Integer> pos = new HashMap<>();
+        private ConcurrentHashMap<Integer, Integer> pos = new ConcurrentHashMap<>();
         private Map<Integer, List<Integer>> sources;
+        private Executor executor;
 
-        public MockVisitor(Map<Integer, List<Integer>> sources) {
+        public MockVisitor(Map<Integer, List<Integer>> sources, Executor executor) {
             this.sources = sources;
+            this.executor = executor;
         }
 
         @Override
-        public void visit(List<Integer> sources, Integer current) {
-            System.out.println("visit " + current);
-            pos.put(current, seq.incrementAndGet());
-            final Set<Integer> expectedSources = new HashSet<>(sources);
-            final HashSet<Integer> actualSources = new HashSet<>(this.sources.getOrDefault(current, Collections.EMPTY_LIST));
-            Assert.assertEquals("source test fail", expectedSources, actualSources);
+        public CompletableFuture<Void> visit(List<Integer> sources, Integer current) {
+            return CompletableFuture.runAsync(() -> {
+                System.out.println("visit " + current);
+                pos.put(current, seq.incrementAndGet());
+                final Set<Integer> expectedSources = new HashSet<>(sources);
+                final HashSet<Integer> actualSources = new HashSet<>(this.sources.getOrDefault(current, Collections.EMPTY_LIST));
+                Assert.assertEquals("source test fail", expectedSources, actualSources);
+            }, executor);
         }
 
         public int count() {
             return pos.size();
         }
 
-        public HashMap<Integer, Integer> getPos() {
+        public ConcurrentHashMap<Integer, Integer> getPos() {
             return pos;
         }
     }

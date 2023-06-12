@@ -21,7 +21,7 @@ public class DAGEngineTest {
         final MockAssembler assembler = new MockAssembler();
         assembler.add(1, 2);
         assembler.add(2, 3);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
         dag.traverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
@@ -46,7 +46,7 @@ public class DAGEngineTest {
         assembler.add(6, 8);
         assembler.add(7, 8);
         assembler.add(4, 8);
-        final DAGEngine<Integer> dag = assembler.toDAG();
+        final DAG<Integer> dag = assembler.toDAG();
         final MockVisitor visitor = assembler.toVisitor();
         dag.traverse(visitor);
         assertCountAndSequence(assembler.getVertices(), visitor);
@@ -86,7 +86,7 @@ public class DAGEngineTest {
             this.sources.put(destination, sources);
         }
 
-        public DAGEngine<Integer> toDAG() {
+        public DAG<Integer> toDAG() {
             return graph.toDAG();
         }
 

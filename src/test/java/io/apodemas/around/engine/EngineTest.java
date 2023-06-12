@@ -1,6 +1,6 @@
 package io.apodemas.around.engine;
 
-import io.apodemas.around.dag.DAGEngine;
+import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
 import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.com.ListKeyExtractor;
@@ -56,14 +56,14 @@ public class EngineTest {
         final Getter<MockResource, List<Org>> v5 = new Getter<>(orgRes);
 
         // build and execute dag engine
-        final TaskVisitor<MockResource> visitor = new TaskVisitor<>(new SyncContext<>());
+        final TaskVisitor<MockResource> visitor = new TaskVisitor<>(new SyncContext<>(), Executors.newFixedThreadPool(3));
         final Graph<TaskExecutor<MockResource>> graph = new Graph<>();
         graph.addEdge(v1, v2);
         graph.addEdge(v2, v3);
         graph.addEdge(v3, v4);
         graph.addEdge(v4, v5);
-        final DAGEngine<TaskExecutor<MockResource>> dag = graph.toDAG();
-        dag.concurrentTraverse(visitor, Executors.newFixedThreadPool(3));
+        final DAG<TaskExecutor<MockResource>> dag = graph.toDAG();
+        dag.concurrentTraverse(visitor);
 
         final List<Org> orgList = v5.getData();
         Assert.assertEquals(5, orgList.size());

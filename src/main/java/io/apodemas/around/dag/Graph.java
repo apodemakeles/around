@@ -29,7 +29,7 @@ public class Graph<V> {
         return Collections.unmodifiableMap(unmodifiableMap);
     }
 
-    public DAGEngine<V> toDAG() {
+    public DAG<V> toDAG() {
         final HashSet<V> visited = new HashSet<>();
         final HashSet<V> rec = new HashSet<>();
         final Map<V, Integer> inDegree = new HashMap<>();
@@ -41,7 +41,7 @@ public class Graph<V> {
             dfs(vertex, visited, rec, inDegree);
         }
 
-        return new DAGEngine<>(vertices, inDegree);
+        return new DAG<>(vertices, inDegree);
     }
 
     private void dfs(V current, Set<V> visited, Set<V> rec, Map<V, Integer> inDegree) {

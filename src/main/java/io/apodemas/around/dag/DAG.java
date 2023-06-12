@@ -10,13 +10,13 @@ import java.util.concurrent.Executor;
  * @date: 2023/5/19
  * @description:
  */
-public class DAGEngine<V> {
+public class DAG<V> {
 
     private Map<V, Set<V>> vertices;
     private Map<V, Integer> inDegree;
     private Set<V> starts;
 
-    DAGEngine(Map<V, Set<V>> vertices, Map<V, Integer> inDegree) {
+    DAG(Map<V, Set<V>> vertices, Map<V, Integer> inDegree) {
         this.vertices = vertices;
         this.inDegree = inDegree;
         starts = new HashSet<>();
@@ -43,13 +43,13 @@ public class DAGEngine<V> {
         traverser.traverse(visitor);
     }
 
-    public void concurrentTraverse(DAGVisitor<V> visitor, Executor executor) {
+    public void concurrentTraverse(AsyncDAGVisitor<V> visitor) {
         final ConcurrentTraverser<V> traverser = new ConcurrentTraverser<>();
         traverser.vertices = this.vertices;
         traverser.inDegree = copyInDegree();
         traverser.starts = this.starts;
 
-        traverser.traverse(visitor, executor);
+        traverser.traverse(visitor);
     }
 
     private Map<V, Integer> copyInDegree() {
@@ -97,10 +97,10 @@ public class DAGEngine<V> {
         private Set<V> starts;
         private Map<V, List<V>> sourceMap = new HashMap<>();
 
-        private void traverse(DAGVisitor<V> visitor, Executor executor) {
+        private void traverse(AsyncDAGVisitor<V> visitor) {
             List<CompletableFuture<Void>> subFutures = new ArrayList<>();
             for (V vertex : starts) {
-                subFutures.add(visit(vertex, visitor, executor));
+                subFutures.add(visit(vertex, visitor));
             }
             try {
                 CompletableFuture.allOf(subFutures.toArray(new CompletableFuture[0])).join();
@@ -111,16 +111,16 @@ public class DAGEngine<V> {
             }
         }
 
-        private CompletableFuture<Void> visit(V current, DAGVisitor<V> visitor, Executor executor) {
+        private CompletableFuture<Void> visit(V current, AsyncDAGVisitor<V> visitor) {
             final List<V> sources = getSources(current);
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> visitor.visit(sources, current), executor);
+            CompletableFuture<Void> future = visitor.visit(sources, current);
             return future.thenCompose((Void) -> {
                 List<CompletableFuture<Void>> subFutures = new ArrayList<>();
                 for (V destination : vertices.get(current)) {
                     addSource(destination, current);
                     final int degree = decreaseAndGetDegree(destination);
                     if (degree == 0) {
-                        final CompletableFuture<Void> subFuture = visit(destination, visitor, executor);
+                        final CompletableFuture<Void> subFuture = visit(destination, visitor);
                         subFutures.add(subFuture);
                     }
                 }
