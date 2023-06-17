@@ -1,5 +1,6 @@
 package io.apodemas.around.engine.executor;
 
+import io.apodemas.around.engine.com.ForkFetcher;
 import io.apodemas.around.engine.task.ExecutionContext;
 import io.apodemas.around.engine.task.ResourceType;
 import io.apodemas.around.engine.task.TaskAsyncExecutor;
@@ -7,26 +8,29 @@ import io.apodemas.around.engine.task.TaskAsyncExecutor;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Supplier;
 
 /**
  * @author: Cao Zheng
- * @date: 2023/6/17
+ * @date: 2023/6/13
  * @description:
  */
-public class Provider<R extends ResourceType, S> implements TaskAsyncExecutor<R> {
+public class FetchExecutor<R extends ResourceType, S, D, K> implements TaskAsyncExecutor<R> {
     private R sourceRes;
-    private Supplier<List<S>> supplier;
+    private R dstRes;
+    private ForkFetcher<S, D, K> fetcher;
     private Executor executor;
 
-    public Provider(R sourceRes, Supplier<List<S>> supplier, Executor executor) {
+    public FetchExecutor(R sourceRes, R dstRes, ForkFetcher<S, D, K> fetcher, Executor executor) {
         this.sourceRes = sourceRes;
-        this.supplier = supplier;
+        this.dstRes = dstRes;
+        this.fetcher = fetcher;
         this.executor = executor;
     }
 
     @Override
     public CompletableFuture<Void> execute(ExecutionContext<R> ctx) {
-        return CompletableFuture.supplyAsync(supplier, executor).thenAccept(sources -> ctx.set(sourceRes, sources));
+        final List<S> sources = ctx.get(sourceRes);
+        return fetcher.fetchAsync(sources, executor).
+                thenAccept(destinations -> ctx.set(dstRes, destinations));
     }
 }

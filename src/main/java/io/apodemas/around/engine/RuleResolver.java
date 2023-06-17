@@ -1,10 +1,6 @@
 package io.apodemas.around.engine;
 
-import io.apodemas.around.engine.com.ListKeyExtractor;
-import io.apodemas.around.engine.task.TaskExecutor;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
-import java.util.Objects;
 
 /**
  * @author: Cao Zheng
@@ -13,10 +9,15 @@ import java.util.Objects;
  */
 public class RuleResolver {
 
-    public <S> Engine<S> resolve(Rules<S> rules) {
-        // 检查
+    private EngineSettings settings;
 
-        // 构建alias
+    public RuleResolver(EngineSettings settings) {
+        this.settings = settings;
+    }
+
+    public <S> Engine<S> resolve(Rules<S> rules) {
+        // 检查alias
+        // 检查fillFn是否合法
 
         // 合并
 

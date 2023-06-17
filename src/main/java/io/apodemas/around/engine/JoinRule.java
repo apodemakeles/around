@@ -17,6 +17,4 @@ public class JoinRule<L, R, K> {
     private SFunction<R, K> rightKeyGetter;
     private SFunction<List<K>, List<R>> rightFetchFn;
     private BiConsumer<L, R> fillFn;
-
-
 }

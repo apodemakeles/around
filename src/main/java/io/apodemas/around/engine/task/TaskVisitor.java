@@ -1,30 +1,24 @@
 package io.apodemas.around.engine.task;
 
 import io.apodemas.around.dag.AsyncDAGVisitor;
-import io.apodemas.around.dag.DAGVisitor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 /**
  * @author: Cao Zheng
  * @date: 2023/5/28
  * @description:
  */
-public class TaskVisitor<R extends ResourceType> implements AsyncDAGVisitor<TaskExecutor<R>> {
-
+public class TaskVisitor<R extends ResourceType> implements AsyncDAGVisitor<TaskAsyncExecutor<R>> {
     private ExecutionContext<R> ctx;
 
-    private Executor executor;
-
-    public TaskVisitor(ExecutionContext<R> ctx, Executor executor) {
+    public TaskVisitor(ExecutionContext<R> ctx) {
         this.ctx = ctx;
-        this.executor = executor;
     }
 
     @Override
-    public CompletableFuture<Void> visit(List<TaskExecutor<R>> sources, TaskExecutor<R> current) {
-        return CompletableFuture.runAsync(() -> current.execute(ctx), executor);
+    public CompletableFuture<Void> visit(List<TaskAsyncExecutor<R>> sources, TaskAsyncExecutor<R> current) {
+        return current.execute(ctx);
     }
 }

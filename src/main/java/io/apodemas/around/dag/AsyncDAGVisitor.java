@@ -1,7 +1,5 @@
 package io.apodemas.around.dag;
 
-import com.sun.xml.internal.ws.util.CompletedFuture;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 

@@ -2,26 +2,25 @@ package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
+import io.apodemas.around.engine.com.ForkFetcher;
 import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.com.ListKeyExtractor;
-import io.apodemas.around.engine.executor.Assembler;
-import io.apodemas.around.engine.executor.Extractor;
-import io.apodemas.around.engine.executor.Getter;
+import io.apodemas.around.engine.executor.AssembleExecutor;
+import io.apodemas.around.engine.executor.FetchExecutor;
 import io.apodemas.around.engine.executor.Provider;
 import io.apodemas.around.engine.task.SyncContext;
 import io.apodemas.around.engine.task.TaskVisitor;
 import io.apodemas.around.engine.task.ResourceType;
-import io.apodemas.around.engine.task.TaskExecutor;
+import io.apodemas.around.engine.task.TaskAsyncExecutor;
 import io.apodemas.around.mock.Org;
 import io.apodemas.around.mock.User;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -35,37 +34,42 @@ public class EngineTest {
     public void mock_org_user_join_should_work() {
         // resources
         final MockResource orgRes = new MockResource("org");
-        final MockResource userIdRes = new MockResource("userId");
         final MockResource userRes = new MockResource("user");
 
+        // thread pool
+        final ExecutorService executor = Executors.newFixedThreadPool(3);
+
         // build executors
-        final Provider<MockResource, List<Org>> v1 = new Provider<>(orgRes, this::getOrgList);
-        final ListKeyExtractor<Org, Long> userIdExtractor = new ListKeyExtractor<>();
-        userIdExtractor.add(Org::getCreatorId);
-        userIdExtractor.add(Org::getOperatorId);
-        final Extractor<MockResource, List<Org>, List<Long>> v2 = new Extractor<>(orgRes, userIdRes, userIdExtractor);
-        final Extractor<MockResource, List<Long>, List<User>> v3 = new Extractor<>(userIdRes, userRes, this::fetchUser);
-        final ListAssembler<User, Org, Long> userAssembler = new ListAssembler<>(User::getId);
-        userAssembler.add(Org::getCreatorId, (user, org) -> {
-            org.setCreatorName(user.getName());
-        });
-        userAssembler.add(Org::getOperatorId, (user, org) -> {
-            org.setOperatorName(user.getName());
-        });
-        final Assembler<MockResource, List<User>, List<Org>> v4 = new Assembler<>(userRes, orgRes, userAssembler);
-        final Getter<MockResource, List<Org>> v5 = new Getter<>(orgRes);
+        List<Function<Org, Long>> extractors = new ArrayList<>();
+        extractors.add(Org::getCreatorId);
+        extractors.add(Org::getOperatorId);
+        final ForkFetcher<Org, User, Long> forkFetcher = new ForkFetcher<>(extractors, this::fetchUser, 1);
+        final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, forkFetcher, executor);
 
-        // build and execute dag engine
-        final TaskVisitor<MockResource> visitor = new TaskVisitor<>(new SyncContext<>(), Executors.newFixedThreadPool(3));
-        final Graph<TaskExecutor<MockResource>> graph = new Graph<>();
+        final ListAssembler<Org, User, Long> creatorAssembler = new ListAssembler<>(Org::getCreatorId);
+        creatorAssembler.add(User::getId, (org, user) -> org.setCreatorName(user.getName()));
+        final AssembleExecutor<MockResource, Org, User, Long> v2 = new AssembleExecutor<>(orgRes, userRes, creatorAssembler);
+
+        final ListAssembler<Org, User, Long> operatorAssembler = new ListAssembler<>(Org::getOperatorId);
+        operatorAssembler.add(User::getId, (org, user) -> org.setOperatorName(user.getName()));
+        final AssembleExecutor<MockResource, Org, User, Long> v3 = new AssembleExecutor<>(orgRes, userRes, operatorAssembler);
+
+
+        // build dag engine
+        final SyncContext<ResourceType> ctx = new SyncContext<>();
+        ctx.set(orgRes, getOrgList());
+
+        final TaskVisitor<MockResource> visitor = new TaskVisitor(ctx);
+        final Graph<TaskAsyncExecutor<MockResource>> graph = new Graph<>();
         graph.addEdge(v1, v2);
-        graph.addEdge(v2, v3);
-        graph.addEdge(v3, v4);
-        graph.addEdge(v4, v5);
-        final DAG<TaskExecutor<MockResource>> dag = graph.toDAG();
-        dag.concurrentTraverse(visitor);
+        graph.addEdge(v1, v3);
+        final DAG<TaskAsyncExecutor<MockResource>> dag = graph.toDAG();
 
-        final List<Org> orgList = v5.getData();
+        // run
+        dag.concurrentTraverse(visitor);
+        final List<Org> orgList = ctx.get(orgRes);
+
+        // assert
         Assert.assertEquals(5, orgList.size());
         final Map<Long, Org> orgMap = orgList.stream().collect(Collectors.toMap(Org::getId, org -> org));
         final Org enterprise = orgMap.get(1L);

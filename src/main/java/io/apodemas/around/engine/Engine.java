@@ -3,7 +3,7 @@ package io.apodemas.around.engine;
 import io.apodemas.around.dag.DAG;
 import io.apodemas.around.engine.task.SyncContext;
 import io.apodemas.around.engine.task.TaskVisitor;
-import io.apodemas.around.engine.task.TaskExecutor;
+import io.apodemas.around.engine.task.TaskAsyncExecutor;
 
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -14,17 +14,19 @@ import java.util.concurrent.Executor;
  * @description:
  */
 public class Engine<S> {
-    private DAG<TaskExecutor<Resource<?>>> dag;
+    private DAG<TaskAsyncExecutor<Resource<?>>> dag;
     private Resource<S> sourceResource;
+    private Executor executor;
 
-    public Engine(DAG<TaskExecutor<Resource<?>>> dag, Resource<S> sourceResource) {
+    Engine(DAG<TaskAsyncExecutor<Resource<?>>> dag, Resource<S> sourceResource, Executor executor) {
         this.dag = dag;
         this.sourceResource = sourceResource;
+        this.executor = executor;
     }
 
-    public void apply(List<S> sources, Executor executor) {
+    public void apply(List<S> sources) {
         final SyncContext<Resource<?>> ctx = new SyncContext<>();
         ctx.set(sourceResource, sources);
-        dag.concurrentTraverse(new TaskVisitor<>(ctx, executor));
+        dag.concurrentTraverse(new TaskVisitor<>(ctx));
     }
 }
