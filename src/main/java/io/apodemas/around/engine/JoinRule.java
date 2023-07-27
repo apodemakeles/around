@@ -16,5 +16,29 @@ public class JoinRule<L, R, K> {
     private SFunction<L, K> leftKeyGetter;
     private SFunction<R, K> rightKeyGetter;
     private SFunction<List<K>, List<R>> rightFetchFn;
-    private BiConsumer<L, R> fillFn;
+    private BiConsumer<R, L> assembleFn;
+
+    public Resource<L> getLeft() {
+        return left;
+    }
+
+    public Resource<R> getRight() {
+        return right;
+    }
+
+    public SFunction<L, K> getLeftKeyGetter() {
+        return leftKeyGetter;
+    }
+
+    public SFunction<R, K> getRightKeyGetter() {
+        return rightKeyGetter;
+    }
+
+    public SFunction<List<K>, List<R>> getRightFetchFn() {
+        return rightFetchFn;
+    }
+
+    public BiConsumer<R, L> getAssembleFn() {
+        return assembleFn;
+    }
 }

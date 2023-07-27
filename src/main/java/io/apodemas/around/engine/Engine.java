@@ -14,19 +14,17 @@ import java.util.concurrent.Executor;
  * @description:
  */
 public class Engine<S> {
-    private DAG<TaskAsyncExecutor<Resource<?>>> dag;
+    private DAG<TaskAsyncExecutor<Resource>> dag;
     private Resource<S> sourceResource;
-    private Executor executor;
 
-    Engine(DAG<TaskAsyncExecutor<Resource<?>>> dag, Resource<S> sourceResource, Executor executor) {
+    Engine(DAG<TaskAsyncExecutor<Resource>> dag, Resource<S> sourceResource) {
         this.dag = dag;
         this.sourceResource = sourceResource;
-        this.executor = executor;
     }
 
     public void apply(List<S> sources) {
         final SyncContext<Resource<?>> ctx = new SyncContext<>();
         ctx.set(sourceResource, sources);
-        dag.concurrentTraverse(new TaskVisitor<>(ctx));
+        dag.concurrentTraverse(new TaskVisitor(ctx));
     }
 }

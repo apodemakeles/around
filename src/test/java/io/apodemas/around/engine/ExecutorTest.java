@@ -7,7 +7,6 @@ import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.com.ListKeyExtractor;
 import io.apodemas.around.engine.executor.AssembleExecutor;
 import io.apodemas.around.engine.executor.FetchExecutor;
-import io.apodemas.around.engine.executor.Provider;
 import io.apodemas.around.engine.task.SyncContext;
 import io.apodemas.around.engine.task.TaskVisitor;
 import io.apodemas.around.engine.task.ResourceType;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
  * @date: 2023/5/27
  * @description:
  */
-public class EngineTest {
+public class ExecutorTest {
 
     @Test
     public void mock_org_user_join_should_work() {
@@ -46,13 +45,11 @@ public class EngineTest {
         final ForkFetcher<Org, User, Long> forkFetcher = new ForkFetcher<>(extractors, this::fetchUser, 1);
         final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, forkFetcher, executor);
 
-        final ListAssembler<Org, User, Long> creatorAssembler = new ListAssembler<>(Org::getCreatorId);
-        creatorAssembler.add(User::getId, (org, user) -> org.setCreatorName(user.getName()));
-        final AssembleExecutor<MockResource, Org, User, Long> v2 = new AssembleExecutor<>(orgRes, userRes, creatorAssembler);
+        final ListAssembler<User, Org, Long> creatorAssembler = new ListAssembler<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
+        final AssembleExecutor<MockResource, User, Org, Long> v2 = new AssembleExecutor<>(userRes, orgRes, creatorAssembler);
 
-        final ListAssembler<Org, User, Long> operatorAssembler = new ListAssembler<>(Org::getOperatorId);
-        operatorAssembler.add(User::getId, (org, user) -> org.setOperatorName(user.getName()));
-        final AssembleExecutor<MockResource, Org, User, Long> v3 = new AssembleExecutor<>(orgRes, userRes, operatorAssembler);
+        final ListAssembler<User, Org, Long> operatorAssembler = new ListAssembler<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
+        final AssembleExecutor<MockResource, User, Org, Long> v3 = new AssembleExecutor<>(userRes, orgRes, operatorAssembler);
 
 
         // build dag engine

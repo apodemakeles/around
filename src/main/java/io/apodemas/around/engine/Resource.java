@@ -30,6 +30,13 @@ public class Resource<T> implements ResourceType {
         return alias;
     }
 
+    public String name() {
+        if (alias != null) {
+            return alias;
+        }
+        return clazz.getName();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
