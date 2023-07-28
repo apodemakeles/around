@@ -22,7 +22,6 @@ public class EngineTest {
 
     @Test
     public void engine_resolver_should_work() {
-        // thread pool
         final ExecutorService executor = Executors.newFixedThreadPool(3);
         final EngineSettings settings = new EngineSettings();
         settings.setExecutor(executor);
@@ -31,11 +30,11 @@ public class EngineTest {
         final RuleResolver resolver = new RuleResolver(settings);
 
         final Rules<Org> rules = new Rules<>();
-        rules.setSource(new Resource<>(Org.class));
+        rules.setSource(new TypedResource<>(Org.class));
 
         final JoinRule<Org, User, Long> j1 = new JoinRule<>();
-        j1.setLeft(new Resource<>(Org.class));
-        j1.setRight(new Resource<>(User.class, "u1"));
+        j1.setLeft(new TypedResource<>(Org.class));
+        j1.setRight(new TypedResource<>(User.class, "u1"));
         j1.setLeftKeyGetter(Org::getCreatorId);
         j1.setRightFetchFn(this::fetchUser);
         j1.setRightKeyGetter(User::getId);
@@ -43,8 +42,8 @@ public class EngineTest {
         rules.addJoinRule(j1);
 
         final JoinRule<Org, User, Long> j2 = new JoinRule<>();
-        j2.setLeft(new Resource<>(Org.class));
-        j2.setRight(new Resource<>(User.class, "u2"));
+        j2.setLeft(new TypedResource<>(Org.class));
+        j2.setRight(new TypedResource<>(User.class, "u2"));
         j2.setLeftKeyGetter(Org::getOperatorId);
         j2.setRightKeyGetter(User::getId);
         j2.setRightFetchFn(this::fetchUser);

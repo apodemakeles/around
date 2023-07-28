@@ -12,10 +12,10 @@ import java.util.stream.Collectors;
  * @date: 2023/5/27
  * @description:
  */
-public class ListKeyExtractor<S, K> implements Function<List<S>, List<K>> {
+public class ListKeyExtractNode<S, K> implements Function<List<S>, List<K>> {
     private List<Function<S, K>> extractors = new ArrayList<>();
 
-    public ListKeyExtractor(List<Function<S, K>> extractors) {
+    public ListKeyExtractNode(List<Function<S, K>> extractors) {
         this.extractors = extractors;
     }
 

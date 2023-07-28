@@ -11,18 +11,18 @@ import java.util.function.BiConsumer;
  * @description:
  */
 public class JoinRule<L, R, K> {
-    private Resource<L> left;
-    private Resource<R> right;
+    private TypedResource<L> left;
+    private TypedResource<R> right;
     private SFunction<L, K> leftKeyGetter;
     private SFunction<R, K> rightKeyGetter;
     private SFunction<List<K>, List<R>> rightFetchFn;
     private BiConsumer<R, L> assembleFn;
 
-    public void setLeft(Resource<L> left) {
+    public void setLeft(TypedResource<L> left) {
         this.left = left;
     }
 
-    public void setRight(Resource<R> right) {
+    public void setRight(TypedResource<R> right) {
         this.right = right;
     }
 
@@ -42,11 +42,11 @@ public class JoinRule<L, R, K> {
         this.assembleFn = assembleFn;
     }
 
-    public Resource<L> getLeft() {
+    public TypedResource<L> getLeft() {
         return left;
     }
 
-    public Resource<R> getRight() {
+    public TypedResource<R> getRight() {
         return right;
     }
 

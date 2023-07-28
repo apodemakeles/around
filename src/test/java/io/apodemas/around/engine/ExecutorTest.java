@@ -2,15 +2,14 @@ package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
-import io.apodemas.around.engine.com.ForkFetcher;
-import io.apodemas.around.engine.com.ListAssembler;
-import io.apodemas.around.engine.com.ListKeyExtractor;
-import io.apodemas.around.engine.executor.AssembleExecutor;
-import io.apodemas.around.engine.executor.FetchExecutor;
-import io.apodemas.around.engine.task.SyncContext;
-import io.apodemas.around.engine.task.TaskVisitor;
-import io.apodemas.around.engine.task.ResourceType;
-import io.apodemas.around.engine.task.TaskAsyncExecutor;
+import io.apodemas.around.engine.com.MultiSourceForkFetcher;
+import io.apodemas.around.engine.com.ListAssembleNode;
+import io.apodemas.around.engine.node.AssembleExecutor;
+import io.apodemas.around.engine.node.FetchExecutor;
+import io.apodemas.around.engine.exec.SyncContext;
+import io.apodemas.around.engine.exec.NodeVisitor;
+import io.apodemas.around.engine.exec.Resource;
+import io.apodemas.around.engine.exec.ExecNode;
 import io.apodemas.around.mock.Org;
 import io.apodemas.around.mock.User;
 import org.junit.Assert;
@@ -42,25 +41,25 @@ public class ExecutorTest {
         List<Function<Org, Long>> extractors = new ArrayList<>();
         extractors.add(Org::getCreatorId);
         extractors.add(Org::getOperatorId);
-        final ForkFetcher<Org, User, Long> forkFetcher = new ForkFetcher<>(extractors, this::fetchUser, 1);
-        final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, forkFetcher, executor);
+        final MultiSourceForkFetcher<Org, User, Long> multiSourceForkFetcher = new MultiSourceForkFetcher<>(extractors, this::fetchUser, 1);
+        final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, multiSourceForkFetcher, executor);
 
-        final ListAssembler<User, Org, Long> creatorAssembler = new ListAssembler<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
+        final ListAssembleNode<User, Org, Long> creatorAssembler = new ListAssembleNode<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
         final AssembleExecutor<MockResource, User, Org, Long> v2 = new AssembleExecutor<>(userRes, orgRes, creatorAssembler);
 
-        final ListAssembler<User, Org, Long> operatorAssembler = new ListAssembler<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
+        final ListAssembleNode<User, Org, Long> operatorAssembler = new ListAssembleNode<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
         final AssembleExecutor<MockResource, User, Org, Long> v3 = new AssembleExecutor<>(userRes, orgRes, operatorAssembler);
 
 
         // build dag engine
-        final SyncContext<ResourceType> ctx = new SyncContext<>();
+        final SyncContext<Resource> ctx = new SyncContext<>();
         ctx.set(orgRes, getOrgList());
 
-        final TaskVisitor<MockResource> visitor = new TaskVisitor(ctx);
-        final Graph<TaskAsyncExecutor<MockResource>> graph = new Graph<>();
+        final NodeVisitor<MockResource> visitor = new NodeVisitor(ctx);
+        final Graph<ExecNode<MockResource>> graph = new Graph<>();
         graph.addEdge(v1, v2);
         graph.addEdge(v1, v3);
-        final DAG<TaskAsyncExecutor<MockResource>> dag = graph.toDAG();
+        final DAG<ExecNode<MockResource>> dag = graph.toDAG();
 
         // run
         dag.concurrentTraverse(visitor);
@@ -120,7 +119,7 @@ public class ExecutorTest {
         return userList;
     }
 
-    public static class MockResource implements ResourceType {
+    public static class MockResource implements Resource {
         private String name;
 
         public MockResource(String name) {
@@ -138,6 +137,11 @@ public class ExecutorTest {
         @Override
         public int hashCode() {
             return Objects.hash(name);
+        }
+
+        @Override
+        public String name() {
+            return null;
         }
     }
 

@@ -9,14 +9,14 @@ import java.util.List;
  * @description:
  */
 public class Rules<S> {
-    private Resource<S> source;
+    private TypedResource<S> source;
     private List<JoinRule<?, ?, ?>> joins = new ArrayList<>();
 
-    public Resource<S> getSource() {
+    public TypedResource<S> getSource() {
         return source;
     }
 
-    public void setSource(Resource<S> source) {
+    public void setSource(TypedResource<S> source) {
         this.source = source;
     }
 

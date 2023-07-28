@@ -1,12 +1,11 @@
 package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.DAG;
-import io.apodemas.around.engine.task.SyncContext;
-import io.apodemas.around.engine.task.TaskVisitor;
-import io.apodemas.around.engine.task.TaskAsyncExecutor;
+import io.apodemas.around.engine.exec.SyncContext;
+import io.apodemas.around.engine.exec.NodeVisitor;
+import io.apodemas.around.engine.exec.ExecNode;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 
 /**
  * @author: Cao Zheng
@@ -14,17 +13,17 @@ import java.util.concurrent.Executor;
  * @description:
  */
 public class Engine<S> {
-    private DAG<TaskAsyncExecutor<Resource>> dag;
-    private Resource<S> sourceResource;
+    private DAG<ExecNode<TypedResource>> dag;
+    private TypedResource<S> sourceResource;
 
-    Engine(DAG<TaskAsyncExecutor<Resource>> dag, Resource<S> sourceResource) {
+    Engine(DAG<ExecNode<TypedResource>> dag, TypedResource<S> sourceResource) {
         this.dag = dag;
         this.sourceResource = sourceResource;
     }
 
     public void apply(List<S> sources) {
-        final SyncContext<Resource<?>> ctx = new SyncContext<>();
+        final SyncContext<TypedResource<?>> ctx = new SyncContext<>();
         ctx.set(sourceResource, sources);
-        dag.concurrentTraverse(new TaskVisitor(ctx));
+        dag.concurrentTraverse(new NodeVisitor(ctx));
     }
 }

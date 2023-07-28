@@ -1,6 +1,6 @@
 package io.apodemas.around.engine;
 
-import io.apodemas.around.engine.task.ResourceType;
+import io.apodemas.around.engine.exec.Resource;
 
 import java.util.Objects;
 
@@ -9,15 +9,15 @@ import java.util.Objects;
  * @date: 2023/5/29
  * @description:
  */
-public class Resource<T> implements ResourceType {
+public class TypedResource<T> implements Resource {
     private Class<T> clazz;
     private String alias;
 
-    public Resource(Class<T> clazz) {
+    public TypedResource(Class<T> clazz) {
         this.clazz = clazz;
     }
 
-    public Resource(Class<T> clazz, String alias) {
+    public TypedResource(Class<T> clazz, String alias) {
         this.clazz = clazz;
         this.alias = alias;
     }
@@ -34,14 +34,14 @@ public class Resource<T> implements ResourceType {
         if (alias != null) {
             return alias;
         }
-        return clazz.getName();
+        return clazz.getSimpleName(); // simple name is enough ?
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Resource<?> resource = (Resource<?>) o;
+        TypedResource<?> resource = (TypedResource<?>) o;
         return Objects.equals(clazz, resource.clazz) && Objects.equals(alias, resource.alias);
     }
 

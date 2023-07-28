@@ -1,11 +1,11 @@
 package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.Graph;
-import io.apodemas.around.engine.com.ForkFetcher;
-import io.apodemas.around.engine.com.ListAssembler;
-import io.apodemas.around.engine.executor.AssembleExecutor;
-import io.apodemas.around.engine.executor.FetchExecutor;
-import io.apodemas.around.engine.task.TaskAsyncExecutor;
+import io.apodemas.around.engine.com.MultiSourceForkFetcher;
+import io.apodemas.around.engine.com.ListAssembleNode;
+import io.apodemas.around.engine.node.AssembleExecutor;
+import io.apodemas.around.engine.node.FetchExecutor;
+import io.apodemas.around.engine.exec.ExecNode;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,20 +29,20 @@ public class RuleResolver {
 
         // todo: 检查class和alias的合法性
 
-        Graph<TaskAsyncExecutor<Resource>> graph = new Graph<>();
-        final TaskAsyncExecutor<Resource> firstAssembler = buildAssemblers(graph, rules);
-        final Resource<S> startRes = rules.getSource();
-        final Map<Resource, TaskAsyncExecutor<Resource>> fetcherMap = new HashMap<>();
+        Graph<ExecNode<TypedResource>> graph = new Graph<>();
+        final ExecNode<TypedResource> firstAssembler = buildAssemblers(graph, rules);
+        final TypedResource<S> startRes = rules.getSource();
+        final Map<TypedResource, ExecNode<TypedResource>> fetcherMap = new HashMap<>();
         for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            final ForkFetcher fetcher = new ForkFetcher(Collections.singletonList(join.getLeftKeyGetter()), join.getRightFetchFn(), settings.getPartitionSize());
-            TaskAsyncExecutor<Resource> executor = new FetchExecutor(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
+            final MultiSourceForkFetcher fetcher = new MultiSourceForkFetcher(Collections.singletonList(join.getLeftKeyGetter()), join.getRightFetchFn(), settings.getPartitionSize());
+            ExecNode<TypedResource> executor = new FetchExecutor(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
             if (join.getLeft().equals(startRes)) {
                 fetcherMap.put(join.getRight(), executor);
             } else {
                 if (!fetcherMap.containsKey(join.getLeft())) {
                     throw new RuleInvalidException(String.format("cannot find resource %s ", join.getLeft()));
                 }
-                final TaskAsyncExecutor<Resource> prvVertex = fetcherMap.get(join.getLeft());
+                final ExecNode<TypedResource> prvVertex = fetcherMap.get(join.getLeft());
                 graph.addEdge(prvVertex, executor);
             }
             if (join.getAssembleFn() != null) {
@@ -50,13 +50,13 @@ public class RuleResolver {
             }
         }
 
-        return new Engine<S>(graph.toDAG(), startRes);
+        return new Engine<>(graph.toDAG(), startRes);
     }
 
-    private <S> TaskAsyncExecutor<Resource> buildAssemblers(Graph<TaskAsyncExecutor<Resource>> graph, Rules<S> rules) {
-        final Resource<S> dstRes = rules.getSource();
-        TaskAsyncExecutor<Resource> first = null;
-        TaskAsyncExecutor<Resource> prv = null;
+    private <S> ExecNode<TypedResource> buildAssemblers(Graph<ExecNode<TypedResource>> graph, Rules<S> rules) {
+        final TypedResource<S> dstRes = rules.getSource();
+        ExecNode<TypedResource> first = null;
+        ExecNode<TypedResource> prv = null;
         for (JoinRule<?, ?, ?> join : rules.getJoins()) {
             if (join.getAssembleFn() == null) {
                 continue;
@@ -64,8 +64,8 @@ public class RuleResolver {
             if (!join.getLeft().equals(dstRes)) {
                 throw new RuleInvalidException(String.format("%s can not be destination of assembler", join.getLeft().name()));
             }
-            final ListAssembler<?, ?, ?> listAssembler = new ListAssembler(join.getRightKeyGetter(), join.getLeftKeyGetter(), join.getAssembleFn());
-            final AssembleExecutor<Resource, ?, ?, ?> cur = new AssembleExecutor(join.getRight(), join.getLeft(), listAssembler);
+            final ListAssembleNode<?, ?, ?> listAssembler = new ListAssembleNode(join.getRightKeyGetter(), join.getLeftKeyGetter(), join.getAssembleFn());
+            final AssembleExecutor<TypedResource, ?, ?, ?> cur = new AssembleExecutor(join.getRight(), join.getLeft(), listAssembler);
             if (first == null) {
                 first = cur;
             } else {

@@ -11,13 +11,13 @@ import java.util.function.Function;
  * @date: 2023/6/16
  * @description:
  */
-public class ForkFetcher<S, D, K> {
-    private ListKeyExtractor<S, K> keyExtractor;
+public class MultiSourceForkFetcher<S, D, K> {
+    private ListKeyExtractNode<S, K> keyExtractor;
     private Function<List<K>, List<D>> fetchFn;
     private int partitionSize;
 
-    public ForkFetcher(List<Function<S, K>> extractors, Function<List<K>, List<D>> fetchFn, int partitionSize) {
-        this.keyExtractor = new ListKeyExtractor<>(extractors);
+    public MultiSourceForkFetcher(List<Function<S, K>> extractors, Function<List<K>, List<D>> fetchFn, int partitionSize) {
+        this.keyExtractor = new ListKeyExtractNode<>(extractors);
         this.fetchFn = fetchFn;
         this.partitionSize = partitionSize;
     }
