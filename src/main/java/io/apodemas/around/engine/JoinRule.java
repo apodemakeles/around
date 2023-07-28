@@ -18,6 +18,30 @@ public class JoinRule<L, R, K> {
     private SFunction<List<K>, List<R>> rightFetchFn;
     private BiConsumer<R, L> assembleFn;
 
+    public void setLeft(Resource<L> left) {
+        this.left = left;
+    }
+
+    public void setRight(Resource<R> right) {
+        this.right = right;
+    }
+
+    public void setLeftKeyGetter(SFunction<L, K> leftKeyGetter) {
+        this.leftKeyGetter = leftKeyGetter;
+    }
+
+    public void setRightKeyGetter(SFunction<R, K> rightKeyGetter) {
+        this.rightKeyGetter = rightKeyGetter;
+    }
+
+    public void setRightFetchFn(SFunction<List<K>, List<R>> rightFetchFn) {
+        this.rightFetchFn = rightFetchFn;
+    }
+
+    public void setAssembleFn(BiConsumer<R, L> assembleFn) {
+        this.assembleFn = assembleFn;
+    }
+
     public Resource<L> getLeft() {
         return left;
     }

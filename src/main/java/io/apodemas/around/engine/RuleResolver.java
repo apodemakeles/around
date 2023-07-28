@@ -26,8 +26,8 @@ public class RuleResolver {
 
     public <S> Engine<S> resolve(Rules<S> rules) {
         // todo: 合并
- 
-        // todo: 检查alias
+
+        // todo: 检查class和alias的合法性
 
         Graph<TaskAsyncExecutor<Resource>> graph = new Graph<>();
         final TaskAsyncExecutor<Resource> firstAssembler = buildAssemblers(graph, rules);

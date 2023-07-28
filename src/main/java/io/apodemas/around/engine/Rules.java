@@ -1,5 +1,6 @@
 package io.apodemas.around.engine;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -9,7 +10,7 @@ import java.util.List;
  */
 public class Rules<S> {
     private Resource<S> source;
-    private List<JoinRule<?, ?, ?>> joins;
+    private List<JoinRule<?, ?, ?>> joins = new ArrayList<>();
 
     public Resource<S> getSource() {
         return source;
@@ -23,7 +24,7 @@ public class Rules<S> {
         return joins;
     }
 
-    public void setJoins(List<JoinRule<?, ?, ?>> joins) {
-        this.joins = joins;
+    public void addJoinRule(JoinRule<?, ?, ?> joinRule) {
+        joins.add(joinRule);
     }
 }
