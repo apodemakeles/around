@@ -1,9 +1,11 @@
 package io.apodemas.around.engine;
 
 import io.apodemas.around.common.lambda.SFunction;
+import io.apodemas.around.engine.com.Assembler;
+import io.apodemas.around.engine.com.KeyExtractor;
+import io.apodemas.around.engine.com.ListFetcher;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 /**
  * @author: Cao Zheng
@@ -13,10 +15,10 @@ import java.util.function.BiConsumer;
 public class JoinRule<L, R, K> {
     private TypedResource<L> left;
     private TypedResource<R> right;
-    private SFunction<L, K> leftKeyGetter;
-    private SFunction<R, K> rightKeyGetter;
-    private SFunction<List<K>, List<R>> rightFetchFn;
-    private BiConsumer<R, L> assembleFn;
+    private KeyExtractor<L, K> leftKeyExtractor;
+    private KeyExtractor<R, K> rightKeyExtractor;
+    private ListFetcher<K, R> fetcher;
+    private Assembler<R, L> assembler;
 
     public void setLeft(TypedResource<L> left) {
         this.left = left;
@@ -26,20 +28,20 @@ public class JoinRule<L, R, K> {
         this.right = right;
     }
 
-    public void setLeftKeyGetter(SFunction<L, K> leftKeyGetter) {
-        this.leftKeyGetter = leftKeyGetter;
+    public void setLeftKeyExtractor(KeyExtractor<L, K> leftKeyExtractor) {
+        this.leftKeyExtractor = leftKeyExtractor;
     }
 
-    public void setRightKeyGetter(SFunction<R, K> rightKeyGetter) {
-        this.rightKeyGetter = rightKeyGetter;
+    public void setRightKeyExtractor(KeyExtractor<R, K> rightKeyExtractor) {
+        this.rightKeyExtractor = rightKeyExtractor;
     }
 
-    public void setRightFetchFn(SFunction<List<K>, List<R>> rightFetchFn) {
-        this.rightFetchFn = rightFetchFn;
+    public void setFetcher(ListFetcher<K, R> fetcher) {
+        this.fetcher = fetcher;
     }
 
-    public void setAssembleFn(BiConsumer<R, L> assembleFn) {
-        this.assembleFn = assembleFn;
+    public void setAssembler(Assembler<R, L> assembler) {
+        this.assembler = assembler;
     }
 
     public TypedResource<L> getLeft() {
@@ -50,19 +52,19 @@ public class JoinRule<L, R, K> {
         return right;
     }
 
-    public SFunction<L, K> getLeftKeyGetter() {
-        return leftKeyGetter;
+    public KeyExtractor<L, K> getLeftKeyExtractor() {
+        return leftKeyExtractor;
     }
 
-    public SFunction<R, K> getRightKeyGetter() {
-        return rightKeyGetter;
+    public KeyExtractor<R, K> getRightKeyExtractor() {
+        return rightKeyExtractor;
     }
 
-    public SFunction<List<K>, List<R>> getRightFetchFn() {
-        return rightFetchFn;
+    public ListFetcher<K, R> getFetcher() {
+        return fetcher;
     }
 
-    public BiConsumer<R, L> getAssembleFn() {
-        return assembleFn;
+    public Assembler<R, L> getAssembler() {
+        return assembler;
     }
 }

@@ -3,8 +3,8 @@ package io.apodemas.around.engine;
 import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
 import io.apodemas.around.engine.com.MultiSourceForkFetcher;
-import io.apodemas.around.engine.com.ListAssembleNode;
-import io.apodemas.around.engine.node.AssembleExecutor;
+import io.apodemas.around.engine.com.ListAssembler;
+import io.apodemas.around.engine.node.AssembleNode;
 import io.apodemas.around.engine.node.FetchExecutor;
 import io.apodemas.around.engine.exec.SyncContext;
 import io.apodemas.around.engine.exec.NodeVisitor;
@@ -44,11 +44,11 @@ public class ExecutorTest {
         final MultiSourceForkFetcher<Org, User, Long> multiSourceForkFetcher = new MultiSourceForkFetcher<>(extractors, this::fetchUser, 1);
         final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, multiSourceForkFetcher, executor);
 
-        final ListAssembleNode<User, Org, Long> creatorAssembler = new ListAssembleNode<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
-        final AssembleExecutor<MockResource, User, Org, Long> v2 = new AssembleExecutor<>(userRes, orgRes, creatorAssembler);
+        final ListAssembler<User, Org, Long> creatorAssembler = new ListAssembler<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
+        final AssembleNode<MockResource, User, Org, Long> v2 = new AssembleNode<>(userRes, orgRes, creatorAssembler);
 
-        final ListAssembleNode<User, Org, Long> operatorAssembler = new ListAssembleNode<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
-        final AssembleExecutor<MockResource, User, Org, Long> v3 = new AssembleExecutor<>(userRes, orgRes, operatorAssembler);
+        final ListAssembler<User, Org, Long> operatorAssembler = new ListAssembler<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
+        final AssembleNode<MockResource, User, Org, Long> v3 = new AssembleNode<>(userRes, orgRes, operatorAssembler);
 
 
         // build dag engine

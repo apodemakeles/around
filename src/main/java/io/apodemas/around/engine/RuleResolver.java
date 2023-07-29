@@ -2,8 +2,8 @@ package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.Graph;
 import io.apodemas.around.engine.com.MultiSourceForkFetcher;
-import io.apodemas.around.engine.com.ListAssembleNode;
-import io.apodemas.around.engine.node.AssembleExecutor;
+import io.apodemas.around.engine.com.ListAssembler;
+import io.apodemas.around.engine.node.AssembleNode;
 import io.apodemas.around.engine.node.FetchExecutor;
 import io.apodemas.around.engine.exec.ExecNode;
 
@@ -34,7 +34,7 @@ public class RuleResolver {
         final TypedResource<S> startRes = rules.getSource();
         final Map<TypedResource, ExecNode<TypedResource>> fetcherMap = new HashMap<>();
         for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            final MultiSourceForkFetcher fetcher = new MultiSourceForkFetcher(Collections.singletonList(join.getLeftKeyGetter()), join.getRightFetchFn(), settings.getPartitionSize());
+            final MultiSourceForkFetcher fetcher = new MultiSourceForkFetcher(Collections.singletonList(join.getLeftKeyExtractor()), join.getFetcher(), settings.getPartitionSize());
             ExecNode<TypedResource> executor = new FetchExecutor(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
             if (join.getLeft().equals(startRes)) {
                 fetcherMap.put(join.getRight(), executor);
@@ -45,7 +45,7 @@ public class RuleResolver {
                 final ExecNode<TypedResource> prvVertex = fetcherMap.get(join.getLeft());
                 graph.addEdge(prvVertex, executor);
             }
-            if (join.getAssembleFn() != null) {
+            if (join.getAssembler() != null) {
                 graph.addEdge(executor, firstAssembler);
             }
         }
@@ -58,14 +58,14 @@ public class RuleResolver {
         ExecNode<TypedResource> first = null;
         ExecNode<TypedResource> prv = null;
         for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            if (join.getAssembleFn() == null) {
+            if (join.getAssembler() == null) {
                 continue;
             }
             if (!join.getLeft().equals(dstRes)) {
                 throw new RuleInvalidException(String.format("%s can not be destination of assembler", join.getLeft().name()));
             }
-            final ListAssembleNode<?, ?, ?> listAssembler = new ListAssembleNode(join.getRightKeyGetter(), join.getLeftKeyGetter(), join.getAssembleFn());
-            final AssembleExecutor<TypedResource, ?, ?, ?> cur = new AssembleExecutor(join.getRight(), join.getLeft(), listAssembler);
+            final ListAssembler<?, ?, ?> listAssembler = new ListAssembler(join.getRightKeyExtractor(), join.getLeftKeyExtractor(), join.getAssembler());
+            final AssembleNode<TypedResource, ?, ?, ?> cur = new AssembleNode(join.getRight(), join.getLeft(), listAssembler);
             if (first == null) {
                 first = cur;
             } else {

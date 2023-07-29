@@ -12,12 +12,12 @@ import java.util.function.Function;
  * @description:
  */
 public class MultiSourceForkFetcher<S, D, K> {
-    private ListKeyExtractNode<S, K> keyExtractor;
+    private MultiListKeyExtractor<S, K> keyExtractor;
     private Function<List<K>, List<D>> fetchFn;
     private int partitionSize;
 
     public MultiSourceForkFetcher(List<Function<S, K>> extractors, Function<List<K>, List<D>> fetchFn, int partitionSize) {
-        this.keyExtractor = new ListKeyExtractNode<>(extractors);
+        this.keyExtractor = new MultiListKeyExtractor(extractors);
         this.fetchFn = fetchFn;
         this.partitionSize = partitionSize;
     }

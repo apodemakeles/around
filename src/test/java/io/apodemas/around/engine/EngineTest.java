@@ -35,19 +35,19 @@ public class EngineTest {
         final JoinRule<Org, User, Long> j1 = new JoinRule<>();
         j1.setLeft(new TypedResource<>(Org.class));
         j1.setRight(new TypedResource<>(User.class, "u1"));
-        j1.setLeftKeyGetter(Org::getCreatorId);
-        j1.setRightFetchFn(this::fetchUser);
-        j1.setRightKeyGetter(User::getId);
-        j1.setAssembleFn((user, org) -> org.setCreatorName(user.getName()));
+        j1.setLeftKeyExtractor(Org::getCreatorId);
+        j1.setFetcher(this::fetchUser);
+        j1.setRightKeyExtractor(User::getId);
+        j1.setAssembler((user, org) -> org.setCreatorName(user.getName()));
         rules.addJoinRule(j1);
 
         final JoinRule<Org, User, Long> j2 = new JoinRule<>();
         j2.setLeft(new TypedResource<>(Org.class));
         j2.setRight(new TypedResource<>(User.class, "u2"));
-        j2.setLeftKeyGetter(Org::getOperatorId);
-        j2.setRightKeyGetter(User::getId);
-        j2.setRightFetchFn(this::fetchUser);
-        j2.setAssembleFn((user, org) -> org.setOperatorName(user.getName()));
+        j2.setLeftKeyExtractor(Org::getOperatorId);
+        j2.setRightKeyExtractor(User::getId);
+        j2.setFetcher(this::fetchUser);
+        j2.setAssembler((user, org) -> org.setOperatorName(user.getName()));
         rules.addJoinRule(j2);
 
         final Engine<Org> engine = resolver.resolve(rules);

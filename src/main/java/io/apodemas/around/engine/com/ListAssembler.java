@@ -12,12 +12,12 @@ import java.util.stream.Collectors;
  * @date: 2023/5/27
  * @description:
  */
-public class ListAssembleNode<S, D, K> implements BiConsumer<List<S>, List<D>> {
-    private Function<S, K> srcKeyExtractor;
-    private Function<D, K> dstKeyExtractor;
-    private BiConsumer<S, D> assembler;
+public class ListAssembler<S, D, K> implements BiConsumer<List<S>, List<D>> {
+    private KeyExtractor<S, K> srcKeyExtractor;
+    private KeyExtractor<D, K> dstKeyExtractor;
+    private Assembler<S, D> assembler;
 
-    public ListAssembleNode(Function<S, K> srcKeyExtractor, Function<D, K> dstKeyExtractor, BiConsumer<S, D> assembler) {
+    public ListAssembler(KeyExtractor<S, K> srcKeyExtractor, KeyExtractor<D, K> dstKeyExtractor, Assembler<S, D> assembler) {
         this.srcKeyExtractor = srcKeyExtractor;
         this.dstKeyExtractor = dstKeyExtractor;
         this.assembler = assembler;
