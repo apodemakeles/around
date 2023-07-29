@@ -1,10 +1,10 @@
 package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.Graph;
-import io.apodemas.around.engine.com.MultiSourceForkFetcher;
+import io.apodemas.around.engine.com.ForkJoinFetcher;
 import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.node.AssembleNode;
-import io.apodemas.around.engine.node.FetchExecutor;
+import io.apodemas.around.engine.node.FetchNode;
 import io.apodemas.around.engine.exec.ExecNode;
 
 import java.util.Collections;
@@ -34,8 +34,8 @@ public class RuleResolver {
         final TypedResource<S> startRes = rules.getSource();
         final Map<TypedResource, ExecNode<TypedResource>> fetcherMap = new HashMap<>();
         for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            final MultiSourceForkFetcher fetcher = new MultiSourceForkFetcher(Collections.singletonList(join.getLeftKeyExtractor()), join.getFetcher(), settings.getPartitionSize());
-            ExecNode<TypedResource> executor = new FetchExecutor(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
+            final ForkJoinFetcher fetcher = new ForkJoinFetcher(join.getLeftKeyExtractor(), join.getFetcher(), settings.getPartitionSize());
+            ExecNode<TypedResource> executor = new FetchNode(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
             if (join.getLeft().equals(startRes)) {
                 fetcherMap.put(join.getRight(), executor);
             } else {

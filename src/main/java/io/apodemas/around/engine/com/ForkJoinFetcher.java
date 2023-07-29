@@ -1,29 +1,39 @@
 package io.apodemas.around.engine.com;
 
+import io.apodemas.around.common.Assert;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author: Cao Zheng
- * @date: 2023/6/16
+ * @date: 2023/7/29
  * @description:
  */
-public class MultiSourceForkFetcher<S, D, K> {
-    private MultiListKeyExtractor<S, K> keyExtractor;
-    private Function<List<K>, List<D>> fetchFn;
+public class ForkJoinFetcher<S, D, K> {
+    private KeyExtractor<S, K> keyExtractor;
+    private ListFetcher<K, D> fetcher;
     private int partitionSize;
 
-    public MultiSourceForkFetcher(List<Function<S, K>> extractors, Function<List<K>, List<D>> fetchFn, int partitionSize) {
-        this.keyExtractor = new MultiListKeyExtractor(extractors);
-        this.fetchFn = fetchFn;
+    public ForkJoinFetcher(KeyExtractor<S, K> keyExtractor, ListFetcher<K, D> fetcher, int partitionSize) {
+        Assert.notNull(keyExtractor, "keyExtractor");
+        Assert.notNull(fetcher, "fetcher");
+        if (partitionSize <= 0) {
+            throw new IllegalArgumentException("partitionSize should greater than 0");
+        }
+
+        this.keyExtractor = keyExtractor;
+        this.fetcher = fetcher;
         this.partitionSize = partitionSize;
     }
 
     public CompletableFuture<List<D>> fetchAsync(List<S> sources, Executor executor) {
-        final List<K> keys = keyExtractor.apply(sources);
+        final List<K> keys = extractKeySet(sources).stream().collect(Collectors.toList());
         final int total = keys.size();
         int shard = total / partitionSize + (total % partitionSize == 0 ? 0 : 1);
         CompletableFuture<List<D>>[] fetchFut = new CompletableFuture[shard];
@@ -42,7 +52,19 @@ public class MultiSourceForkFetcher<S, D, K> {
         });
     }
 
+    private Set<K> extractKeySet(List<S> sources) {
+        final HashSet<K> keySet = new HashSet<>();
+        for (S source : sources) {
+            final K key = keyExtractor.apply(source);
+            if (key != null) {
+                keySet.add(key);
+            }
+        }
+
+        return keySet;
+    }
+
     private CompletableFuture<List<D>> fetch(List<K> keys, Executor executor) {
-        return CompletableFuture.supplyAsync(() -> fetchFn.apply(keys), executor);
+        return CompletableFuture.supplyAsync(() -> fetcher.apply(keys), executor);
     }
 }

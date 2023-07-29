@@ -14,7 +14,7 @@ public class SyncContext<R extends Resource> implements ExecContext<R> {
     @Override
     public synchronized <T> void set(R type, T resource) {
         if (map.containsKey(type)) {
-            throw new IllegalStateException("resource" + type + " already been set");
+            throw new IllegalStateException("resource '" + type.name() + "' already been set");
         }
         map.put(type, resource);
     }
@@ -22,7 +22,7 @@ public class SyncContext<R extends Resource> implements ExecContext<R> {
     @Override
     public synchronized <T> T get(R type) {
         if (!map.containsKey(type)) {
-            throw new IllegalStateException("cannot find resource " + type.name());
+            throw new IllegalStateException("cannot find resource '" + type.name() + "'");
         }
         return (T) map.get(type);
     }

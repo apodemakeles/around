@@ -2,10 +2,10 @@ package io.apodemas.around.engine;
 
 import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
-import io.apodemas.around.engine.com.MultiSourceForkFetcher;
+import io.apodemas.around.engine.com.ForkJoinFetcher;
 import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.node.AssembleNode;
-import io.apodemas.around.engine.node.FetchExecutor;
+import io.apodemas.around.engine.node.FetchNode;
 import io.apodemas.around.engine.exec.SyncContext;
 import io.apodemas.around.engine.exec.NodeVisitor;
 import io.apodemas.around.engine.exec.Resource;
@@ -32,23 +32,27 @@ public class ExecutorTest {
     public void mock_org_user_join_should_work() {
         // resources
         final MockResource orgRes = new MockResource("org");
-        final MockResource userRes = new MockResource("user");
+        final MockResource userRes1 = new MockResource("user1");
+        final MockResource userRes2 = new MockResource("user2");
 
         // thread pool
         final ExecutorService executor = Executors.newFixedThreadPool(3);
 
         // build executors
         List<Function<Org, Long>> extractors = new ArrayList<>();
-        extractors.add(Org::getCreatorId);
         extractors.add(Org::getOperatorId);
-        final MultiSourceForkFetcher<Org, User, Long> multiSourceForkFetcher = new MultiSourceForkFetcher<>(extractors, this::fetchUser, 1);
-        final FetchExecutor<MockResource, Org, User, Long> v1 = new FetchExecutor<>(orgRes, userRes, multiSourceForkFetcher, executor);
+        final ForkJoinFetcher<Org, User, Long> creatorFetcher = new ForkJoinFetcher<>(Org::getCreatorId, this::fetchUser, 1);
+        final FetchNode<MockResource, Org, User, Long> v1 = new FetchNode<>(orgRes, userRes1, creatorFetcher, executor);
+
+        final ForkJoinFetcher<Org, User, Long> operatorFetcher = new ForkJoinFetcher<>(Org::getOperatorId, this::fetchUser, 1);
+        final FetchNode<MockResource, Org, User, Long> v2 = new FetchNode<>(orgRes, userRes2, operatorFetcher, executor);
+
 
         final ListAssembler<User, Org, Long> creatorAssembler = new ListAssembler<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
-        final AssembleNode<MockResource, User, Org, Long> v2 = new AssembleNode<>(userRes, orgRes, creatorAssembler);
+        final AssembleNode<MockResource, User, Org, Long> v3 = new AssembleNode<>(userRes1, orgRes, creatorAssembler);
 
         final ListAssembler<User, Org, Long> operatorAssembler = new ListAssembler<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
-        final AssembleNode<MockResource, User, Org, Long> v3 = new AssembleNode<>(userRes, orgRes, operatorAssembler);
+        final AssembleNode<MockResource, User, Org, Long> v4 = new AssembleNode<>(userRes2, orgRes, operatorAssembler);
 
 
         // build dag engine
@@ -57,8 +61,8 @@ public class ExecutorTest {
 
         final NodeVisitor<MockResource> visitor = new NodeVisitor(ctx);
         final Graph<ExecNode<MockResource>> graph = new Graph<>();
-        graph.addEdge(v1, v2);
         graph.addEdge(v1, v3);
+        graph.addEdge(v2, v4);
         final DAG<ExecNode<MockResource>> dag = graph.toDAG();
 
         // run
@@ -141,7 +145,7 @@ public class ExecutorTest {
 
         @Override
         public String name() {
-            return null;
+            return name;
         }
     }
 

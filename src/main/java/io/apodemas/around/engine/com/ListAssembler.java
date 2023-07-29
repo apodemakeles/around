@@ -1,5 +1,7 @@
 package io.apodemas.around.engine.com;
 
+import io.apodemas.around.common.Assert;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,10 @@ public class ListAssembler<S, D, K> implements BiConsumer<List<S>, List<D>> {
     private Assembler<S, D> assembler;
 
     public ListAssembler(KeyExtractor<S, K> srcKeyExtractor, KeyExtractor<D, K> dstKeyExtractor, Assembler<S, D> assembler) {
+        Assert.notNull(srcKeyExtractor, "srcKeyExtractor");
+        Assert.notNull(dstKeyExtractor, "dstKeyExtractor");
+        Assert.notNull(assembler, "assembler");
+
         this.srcKeyExtractor = srcKeyExtractor;
         this.dstKeyExtractor = dstKeyExtractor;
         this.assembler = assembler;
