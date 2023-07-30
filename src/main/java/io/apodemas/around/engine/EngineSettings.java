@@ -1,6 +1,7 @@
 package io.apodemas.around.engine;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * @author: Cao Zheng
@@ -9,8 +10,10 @@ import java.util.concurrent.Executor;
  */
 
 public class EngineSettings {
-    private Executor executor;
+    private Executor executor = DEFAULT_EXECUTOR;
     private int partitionSize;
+
+    private static final Executor DEFAULT_EXECUTOR = Executors.newFixedThreadPool(10);
 
     public void setExecutor(Executor executor) {
         this.executor = executor;

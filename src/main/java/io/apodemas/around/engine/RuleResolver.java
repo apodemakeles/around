@@ -27,8 +27,6 @@ public class RuleResolver {
     public <S> Engine<S> resolve(Rules<S> rules) {
         rules.check();
 
-        // todo: 检查class和alias的合法性
-
         Graph<ExecNode<TypedResource>> graph = new Graph<>();
 
         final ExecNode<TypedResource> firstAssembler = buildAssemblers(graph, rules);
@@ -51,9 +49,6 @@ public class RuleResolver {
                 continue;
             }
             final AssembleRule<?, ?, ?> assembleRule = (AssembleRule<?, ?, ?>) rule;
-            if (!assembleRule.root().equals(root)) {
-                throw new RuleInvalidException(String.format("%s can not be root of assembler", assembleRule.root().name()));
-            }
             final AssembleNode cur = buildAssemble(assembleRule);
             if (first == null) {
                 first = cur;
@@ -61,10 +56,6 @@ public class RuleResolver {
                 graph.addEdge(prv, cur);
             }
             prv = cur;
-        }
-
-        if (first == null) {
-            throw new RuleInvalidException("need one at least assembler");
         }
 
         return first;
