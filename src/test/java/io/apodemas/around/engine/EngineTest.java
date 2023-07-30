@@ -1,5 +1,8 @@
 package io.apodemas.around.engine;
 
+import io.apodemas.around.engine.rule.AssembleRule;
+import io.apodemas.around.engine.rule.JoinRule;
+import io.apodemas.around.engine.rule.Rules;
 import io.apodemas.around.mock.Org;
 import io.apodemas.around.mock.User;
 import org.junit.Assert;
@@ -19,7 +22,6 @@ import java.util.stream.Collectors;
  */
 public class EngineTest {
 
-
     @Test
     public void engine_resolver_should_work() {
         final ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -29,26 +31,41 @@ public class EngineTest {
 
         final RuleResolver resolver = new RuleResolver(settings);
 
+        final TypedResource<Org> root = new TypedResource<>(Org.class);
+        final TypedResource<User> u1 = new TypedResource<>(User.class, "u1");
+        final TypedResource<User> u2 = new TypedResource<>(User.class, "u2");
         final Rules<Org> rules = new Rules<>();
-        rules.setSource(new TypedResource<>(Org.class));
+        rules.root(root);
 
         final JoinRule<Org, User, Long> j1 = new JoinRule<>();
-        j1.setLeft(new TypedResource<>(Org.class));
-        j1.setRight(new TypedResource<>(User.class, "u1"));
-        j1.setLeftKeyExtractor(Org::getCreatorId);
-        j1.setFetcher(this::fetchUser);
-        j1.setRightKeyExtractor(User::getId);
-        j1.setAssembler((user, org) -> org.setCreatorName(user.getName()));
-        rules.addJoinRule(j1);
+        j1.source(root);
+        j1.dest(u1);
+        j1.sourceKeyExtractor(Org::getCreatorId);
+        j1.fetcher(this::fetchUser);
+        rules.add(j1);
 
         final JoinRule<Org, User, Long> j2 = new JoinRule<>();
-        j2.setLeft(new TypedResource<>(Org.class));
-        j2.setRight(new TypedResource<>(User.class, "u2"));
-        j2.setLeftKeyExtractor(Org::getOperatorId);
-        j2.setRightKeyExtractor(User::getId);
-        j2.setFetcher(this::fetchUser);
-        j2.setAssembler((user, org) -> org.setOperatorName(user.getName()));
-        rules.addJoinRule(j2);
+        j2.source(root);
+        j2.dest(u2);
+        j2.sourceKeyExtractor(Org::getOperatorId);
+        j2.fetcher(this::fetchUser);
+        rules.add(j2);
+
+        final AssembleRule<Org, User, Long> a1 = new AssembleRule<>();
+        a1.root(root);
+        a1.source(u1);
+        a1.rootKeyExtractor(Org::getCreatorId);
+        a1.sourceKeyExtractor(User::getId);
+        a1.assembler((user, org) -> org.setCreatorName(user.getName()));
+        rules.add(a1);
+
+        final AssembleRule<Org, User, Long> a2 = new AssembleRule<>();
+        a2.root(root);
+        a2.source(u2);
+        a2.rootKeyExtractor(Org::getOperatorId);
+        a2.sourceKeyExtractor(User::getId);
+        a2.assembler((user, org) -> org.setOperatorName(user.getName()));
+        rules.add(a2);
 
         final Engine<Org> engine = resolver.resolve(rules);
         final List<Org> orgList = getOrgList();

@@ -6,8 +6,8 @@ import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.node.AssembleNode;
 import io.apodemas.around.engine.node.FetchNode;
 import io.apodemas.around.engine.exec.ExecNode;
+import io.apodemas.around.engine.rule.*;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,47 +25,36 @@ public class RuleResolver {
     }
 
     public <S> Engine<S> resolve(Rules<S> rules) {
-        // todo: 合并
+        rules.check();
 
         // todo: 检查class和alias的合法性
 
         Graph<ExecNode<TypedResource>> graph = new Graph<>();
-        final ExecNode<TypedResource> firstAssembler = buildAssemblers(graph, rules);
-        final TypedResource<S> startRes = rules.getSource();
-        final Map<TypedResource, ExecNode<TypedResource>> fetcherMap = new HashMap<>();
-        for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            final ForkJoinFetcher fetcher = new ForkJoinFetcher(join.getLeftKeyExtractor(), join.getFetcher(), settings.getPartitionSize());
-            ExecNode<TypedResource> executor = new FetchNode(join.getLeft(), join.getRight(), fetcher, settings.getExecutor());
-            if (join.getLeft().equals(startRes)) {
-                fetcherMap.put(join.getRight(), executor);
-            } else {
-                if (!fetcherMap.containsKey(join.getLeft())) {
-                    throw new RuleInvalidException(String.format("cannot find resource %s ", join.getLeft()));
-                }
-                final ExecNode<TypedResource> prvVertex = fetcherMap.get(join.getLeft());
-                graph.addEdge(prvVertex, executor);
-            }
-            if (join.getAssembler() != null) {
-                graph.addEdge(executor, firstAssembler);
-            }
-        }
 
-        return new Engine<>(graph.toDAG(), startRes);
+        final ExecNode<TypedResource> firstAssembler = buildAssemblers(graph, rules);
+
+        final TypedResource<S> root = rules.root();
+
+        buildJoins(graph, rules, firstAssembler);
+
+        return new Engine<>(graph.toDAG(), root);
     }
 
     private <S> ExecNode<TypedResource> buildAssemblers(Graph<ExecNode<TypedResource>> graph, Rules<S> rules) {
-        final TypedResource<S> dstRes = rules.getSource();
+        final TypedResource<S> root = rules.root();
+
         ExecNode<TypedResource> first = null;
         ExecNode<TypedResource> prv = null;
-        for (JoinRule<?, ?, ?> join : rules.getJoins()) {
-            if (join.getAssembler() == null) {
+
+        for (Rule rule : rules.items()) {
+            if (!(rule instanceof AssembleRule)) {
                 continue;
             }
-            if (!join.getLeft().equals(dstRes)) {
-                throw new RuleInvalidException(String.format("%s can not be destination of assembler", join.getLeft().name()));
+            final AssembleRule<?, ?, ?> assembleRule = (AssembleRule<?, ?, ?>) rule;
+            if (!assembleRule.root().equals(root)) {
+                throw new RuleInvalidException(String.format("%s can not be root of assembler", assembleRule.root().name()));
             }
-            final ListAssembler<?, ?, ?> listAssembler = new ListAssembler(join.getRightKeyExtractor(), join.getLeftKeyExtractor(), join.getAssembler());
-            final AssembleNode<TypedResource, ?, ?, ?> cur = new AssembleNode(join.getRight(), join.getLeft(), listAssembler);
+            final AssembleNode cur = buildAssemble(assembleRule);
             if (first == null) {
                 first = cur;
             } else {
@@ -81,4 +70,32 @@ public class RuleResolver {
         return first;
     }
 
+    private AssembleNode buildAssemble(AssembleRule rule) {
+        final ListAssembler listAssembler = new ListAssembler(rule.sourceKeyExtractor(), rule.rootKeyExtractor(), rule.assembler());
+        return new AssembleNode(rule.source(), rule.root(), listAssembler);
+    }
+
+    private <S> void buildJoins(Graph<ExecNode<TypedResource>> graph, Rules<S> rules, ExecNode<TypedResource> firstAssembler) {
+        final TypedResource<S> root = rules.root();
+        final Map<TypedResource, ExecNode<TypedResource>> fetcherMap = new HashMap<>();
+        for (Rule rule : rules.items()) {
+            if (!(rule instanceof JoinRule)) {
+                continue;
+            }
+            final JoinRule<?, ?, ?> joinRule = (JoinRule<?, ?, ?>) rule;
+            final ForkJoinFetcher<S, ?, ?> fetcher = new ForkJoinFetcher(joinRule.sourceKeyExtractor(), joinRule.fetcher(), settings.getPartitionSize());
+            ExecNode<TypedResource> fetchNode = new FetchNode(joinRule.source(), joinRule.dest(), fetcher, settings.getExecutor());
+            if (joinRule.source().equals(root)) {
+                fetcherMap.put(joinRule.dest(), fetchNode);
+                graph.addEdge(fetchNode, firstAssembler);
+            } else {
+                if (!fetcherMap.containsKey(joinRule.source())) {
+                    // todo: 不再依赖于rules的顺序，用一个数据结构暂存找不到source的join
+                    throw new RuleInvalidException(String.format("cannot find resource %s", joinRule.source()));
+                }
+                final ExecNode<TypedResource> prvVertex = fetcherMap.get(joinRule.source());
+                graph.addEdge(prvVertex, fetchNode);
+            }
+        }
+    }
 }
