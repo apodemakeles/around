@@ -4,8 +4,8 @@ import io.apodemas.around.dag.DAG;
 import io.apodemas.around.dag.Graph;
 import io.apodemas.around.engine.com.ForkJoinFetcher;
 import io.apodemas.around.engine.com.ListAssembler;
-import io.apodemas.around.engine.node.AssembleNode;
-import io.apodemas.around.engine.node.FetchNode;
+import io.apodemas.around.engine.node.ListAssembleNode;
+import io.apodemas.around.engine.node.ListFetchNode;
 import io.apodemas.around.engine.exec.SyncContext;
 import io.apodemas.around.engine.exec.NodeVisitor;
 import io.apodemas.around.engine.exec.Resource;
@@ -42,17 +42,17 @@ public class ExecutorTest {
         List<Function<Org, Long>> extractors = new ArrayList<>();
         extractors.add(Org::getOperatorId);
         final ForkJoinFetcher<Org, User, Long> creatorFetcher = new ForkJoinFetcher<>(Org::getCreatorId, this::fetchUser, 1);
-        final FetchNode<MockResource, Org, User, Long> v1 = new FetchNode<>(orgRes, userRes1, creatorFetcher, executor);
+        final ListFetchNode<MockResource, Org, User, Long> v1 = new ListFetchNode<>(orgRes, userRes1, creatorFetcher, executor);
 
         final ForkJoinFetcher<Org, User, Long> operatorFetcher = new ForkJoinFetcher<>(Org::getOperatorId, this::fetchUser, 1);
-        final FetchNode<MockResource, Org, User, Long> v2 = new FetchNode<>(orgRes, userRes2, operatorFetcher, executor);
+        final ListFetchNode<MockResource, Org, User, Long> v2 = new ListFetchNode<>(orgRes, userRes2, operatorFetcher, executor);
 
 
         final ListAssembler<User, Org, Long> creatorAssembler = new ListAssembler<>(User::getId, Org::getCreatorId, (user, org) -> org.setCreatorName(user.getName()));
-        final AssembleNode<MockResource, User, Org, Long> v3 = new AssembleNode<>(userRes1, orgRes, creatorAssembler);
+        final ListAssembleNode<MockResource, User, Org, Long> v3 = new ListAssembleNode<>(userRes1, orgRes, creatorAssembler);
 
         final ListAssembler<User, Org, Long> operatorAssembler = new ListAssembler<>(User::getId, Org::getOperatorId, (user, org) -> org.setOperatorName(user.getName()));
-        final AssembleNode<MockResource, User, Org, Long> v4 = new AssembleNode<>(userRes2, orgRes, operatorAssembler);
+        final ListAssembleNode<MockResource, User, Org, Long> v4 = new ListAssembleNode<>(userRes2, orgRes, operatorAssembler);
 
 
         // build dag engine

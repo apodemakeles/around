@@ -3,8 +3,8 @@ package io.apodemas.around.engine;
 import io.apodemas.around.dag.Graph;
 import io.apodemas.around.engine.com.ForkJoinFetcher;
 import io.apodemas.around.engine.com.ListAssembler;
-import io.apodemas.around.engine.node.AssembleNode;
-import io.apodemas.around.engine.node.FetchNode;
+import io.apodemas.around.engine.node.ListAssembleNode;
+import io.apodemas.around.engine.node.ListFetchNode;
 import io.apodemas.around.engine.exec.ExecNode;
 import io.apodemas.around.engine.rule.*;
 
@@ -39,8 +39,6 @@ public class RuleResolver {
     }
 
     private <S> ExecNode<TypedResource> buildAssemblers(Graph<ExecNode<TypedResource>> graph, Rules<S> rules) {
-        final TypedResource<S> root = rules.root();
-
         ExecNode<TypedResource> first = null;
         ExecNode<TypedResource> prv = null;
 
@@ -49,7 +47,7 @@ public class RuleResolver {
                 continue;
             }
             final AssembleRule<?, ?, ?> assembleRule = (AssembleRule<?, ?, ?>) rule;
-            final AssembleNode cur = buildAssemble(assembleRule);
+            final ListAssembleNode cur = buildAssemble(assembleRule);
             if (first == null) {
                 first = cur;
             } else {
@@ -61,9 +59,9 @@ public class RuleResolver {
         return first;
     }
 
-    private AssembleNode buildAssemble(AssembleRule rule) {
+    private ListAssembleNode buildAssemble(AssembleRule rule) {
         final ListAssembler listAssembler = new ListAssembler(rule.sourceKeyExtractor(), rule.rootKeyExtractor(), rule.assembler());
-        return new AssembleNode(rule.source(), rule.root(), listAssembler);
+        return new ListAssembleNode(rule.source(), rule.root(), listAssembler);
     }
 
     private <S> void buildJoins(Graph<ExecNode<TypedResource>> graph, Rules<S> rules, ExecNode<TypedResource> firstAssembler) {
@@ -75,7 +73,7 @@ public class RuleResolver {
             }
             final JoinRule<?, ?, ?> joinRule = (JoinRule<?, ?, ?>) rule;
             final ForkJoinFetcher<S, ?, ?> fetcher = new ForkJoinFetcher(joinRule.sourceKeyExtractor(), joinRule.fetcher(), settings.getPartitionSize());
-            ExecNode<TypedResource> fetchNode = new FetchNode(joinRule.source(), joinRule.dest(), fetcher, settings.getExecutor());
+            ExecNode<TypedResource> fetchNode = new ListFetchNode(joinRule.source(), joinRule.dest(), fetcher, settings.getExecutor());
             if (joinRule.source().equals(root)) {
                 fetcherMap.put(joinRule.dest(), fetchNode);
                 graph.addEdge(fetchNode, firstAssembler);

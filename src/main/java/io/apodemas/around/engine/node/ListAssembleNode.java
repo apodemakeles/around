@@ -1,42 +1,39 @@
 package io.apodemas.around.engine.node;
 
 import io.apodemas.around.common.Assert;
-import io.apodemas.around.engine.com.ForkJoinFetcher;
+import io.apodemas.around.engine.com.ListAssembler;
 import io.apodemas.around.engine.exec.ExecContext;
 import io.apodemas.around.engine.exec.Resource;
 import io.apodemas.around.engine.exec.ExecNode;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 /**
  * @author: Cao Zheng
- * @date: 2023/6/13
+ * @date: 2023/6/16
  * @description:
  */
-public class FetchNode<R extends Resource, S, D, K> implements ExecNode<R> {
+public class ListAssembleNode<R extends Resource, S, D, K> implements ExecNode<R> {
     private R source;
     private R destination;
-    private ForkJoinFetcher<S, D, K> fetcher;
-    private Executor executor;
+    private ListAssembler<S, D, K> assembler;
 
-    public FetchNode(R source, R destination, ForkJoinFetcher<S, D, K> fetcher, Executor executor) {
+    public ListAssembleNode(R source, R destination, ListAssembler<S, D, K> assembler) {
         Assert.notNull(source, "source");
         Assert.notNull(destination, "destination");
-        Assert.notNull(fetcher, "fetcher");
-        Assert.notNull(executor, "executor");
+        Assert.notNull(assembler, "assembler");
 
         this.source = source;
         this.destination = destination;
-        this.fetcher = fetcher;
-        this.executor = executor;
+        this.assembler = assembler;
     }
 
     @Override
     public CompletableFuture<Void> execute(ExecContext<R> ctx) {
         final List<S> sources = ctx.get(source);
-        return fetcher.fetchAsync(sources, executor).
-                thenAccept(destinations -> ctx.set(destination, destinations));
+        final List<D> destinations = ctx.get(destination);
+        assembler.accept(sources, destinations);
+        return CompletableFuture.completedFuture(null);
     }
 }
