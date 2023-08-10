@@ -2,6 +2,7 @@ package io.apodemas.around.engine.com;
 
 import io.apodemas.around.common.Assert;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
  * @date: 2023/5/27
  * @description:
  */
-public class ListAssembler<S, D, K> implements BiConsumer<List<S>, List<D>> {
+public class ListAssembler<S, D, K> implements BiConsumer<List<S>, List<D>>, Serializable {
     private KeyExtractor<S, K> srcKeyExtractor;
     private KeyExtractor<D, K> dstKeyExtractor;
     private Assembler<S, D> assembler;

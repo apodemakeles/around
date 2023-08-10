@@ -1,5 +1,6 @@
 package io.apodemas.around.engine.com;
 
+import java.io.Serializable;
 import java.util.function.Function;
 
 /**
@@ -8,5 +9,5 @@ import java.util.function.Function;
  * @description:
  */
 @FunctionalInterface
-public interface KeyExtractor<S, K> extends Function<S, K> {
+public interface KeyExtractor<S, K> extends Function<S, K>, Serializable {
 }

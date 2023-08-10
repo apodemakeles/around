@@ -1,5 +1,6 @@
 package io.apodemas.around.engine.com;
 
+import java.io.Serializable;
 import java.util.function.BiConsumer;
 
 /**
@@ -8,5 +9,5 @@ import java.util.function.BiConsumer;
  * @description:
  */
 @FunctionalInterface
-public interface Assembler<S, D> extends BiConsumer<S, D> {
+public interface Assembler<S, D> extends BiConsumer<S, D>, Serializable {
 }
